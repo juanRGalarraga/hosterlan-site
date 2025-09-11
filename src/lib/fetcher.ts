@@ -1,11 +1,33 @@
 import { API_URL } from "astro:env/client";
 
-export interface GraphQLResponse<T> {
-  data?: T;
-  errors?: { message: string }[];
+export const fetcher = (token?: string) => async(query: string, variables?: Record<string, any>) => {
+  const res = await fetch(`${API_URL}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const json = await res.json();
+
+  if (json.errors) {
+    const { message } = json.errors[0];
+    throw new Error(message);
+  }
+
+  return json.data;
 }
 
-export async function fetcher<TData = any, TVariables = Record<string, any>>(
+type GraphQLResponse<T> = {
+  data: T;
+  errors: any;
+}
+
+
+export async function fetchGraphQl<TData = any, TVariables = Record<string, any>>(
   query: string,
   variables?: TVariables
 ): Promise<TData> {
@@ -13,8 +35,7 @@ export async function fetcher<TData = any, TVariables = Record<string, any>>(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY4YmIyZTdiN2Y0Nzk5ZWQzNThmZjRmOCIsImVtYWlsIjoiamdhbGFycmFnYUBvdXRsb29rLmNvbS5hciIsImlhdCI6MTc1NzUyNTE1MywiZXhwIjoxNzU3NTI4NzUzfQ.E1CN1oVJFqdReo-h253_gLNnjSPgWesmpym8J_q_kbk"
+      "Access-Control-Allow-Origin": "*"
     },
     body: JSON.stringify({ query, variables }),
   });

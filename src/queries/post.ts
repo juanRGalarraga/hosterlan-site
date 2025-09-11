@@ -1,4 +1,4 @@
-export const POST_LIST = `
+export const POST_LIST_QUERY = `
   query Posts($pagination: PaginationInput!) {
     posts(pagination: $pagination) {
       total

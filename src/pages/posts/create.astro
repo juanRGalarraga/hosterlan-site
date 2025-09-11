@@ -1,18 +1,23 @@
 ---
 import NavBar from 'components/NavBar';
-import Layout from '../layouts/Layout.astro';
+import Layout from 'layouts/Layout.astro'
 import App from 'components/App';
 import ProtectedRoute from 'components/ProtectedRoute';
+import { SWRConfig } from 'swr';
+import { AuthProvider } from 'contexts/AuthContext';
+import { swrConfig } from 'lib/swr-config';
 
 // Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
 // Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
 <Layout>
-	<div class="min-h-screen bg-background">
-		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
-			<NavBar title="Publicar habitación" appName="Hosterlan" />
-			<App client:load>
-		</main>
-	</div>
+    <SWRConfig value={swrConfig}>
+        <AuthProvider>
+            <ProtectedRoute>
+            <h1>HOLA</h1>
+            </ProtectedRoute>
+        </AuthProvider>
+    </SWRConfig>
+	
 </Layout>
