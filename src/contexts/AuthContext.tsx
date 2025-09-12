@@ -1,8 +1,8 @@
-import type { User } from "interfaces/User";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuthContextType } from "types/AuthContextType";
-import { LOGIN_QUERY } from "queries/login";
-import { fetcher, fetchGraphQl } from "lib/fetcher";
+'use client';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { User, LoginCredentials, AuthContextType } from '../types/auth';
+import { LOGIN_QUERY } from '@/queries/login';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -10,93 +10,87 @@ interface AuthProviderProps {
     children: ReactNode;
 }
 
-interface LoginResponse {
-    login: {
-        accessToken: string;
-        user: User;
-    }
-}
-
-interface Autentication {
-    auth: {
-        email: string;
-        password: string;
-    }
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const savedToken = sessionStorage.getItem('auth_token');
-        const savedUser = sessionStorage.getItem('auth_user');
+        const token = sessionStorage.getItem('auth_token');
+        const userData = sessionStorage.getItem('user_data');
 
-        if (savedToken && savedUser) {
-            setToken(savedToken);
-            setUser(JSON.parse(savedUser));
+        if (token && userData) {
+            try {
+                const parsedUser = JSON.parse(userData);
+                setUser(parsedUser);
+            } catch (error) {
+                console.error(error);
+                sessionStorage.removeItem('auth_token');
+                sessionStorage.removeItem('user_data');
+            }
         }
+
         setIsLoading(false);
     }, []);
 
-    const login = async (email: string, password: string): Promise<void> => {
+    const login = async (auth: LoginCredentials): Promise<void> => {
         setIsLoading(true);
 
         try {
+            
+            const response = await fetch('http://127.9.0.1:3000/graphql/v1', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({
+                    query: LOGIN_QUERY,
+                    variables: { auth },
+                }),
+            });
 
-            const data = await fetchGraphQl<LoginResponse, Autentication>(LOGIN_QUERY, { auth :{ email, password }});
+            const data = await response.json();
 
-            if (!data?.login) {
-                throw new Error('Error');
+            if (data.errors) {
+                throw new Error(data.errors[0].message);
             }
 
-            const { accessToken, user } = data.login;
+            const { token, user: userData } = data.data.login;
 
-            sessionStorage.setItem('auth_token', accessToken);
-            sessionStorage.setItem('auth_user', JSON.stringify(user));
+            sessionStorage.setItem('auth_token', token);
+            sessionStorage.setItem('user_data', JSON.stringify(userData));
 
-            setToken(accessToken);
-            setUser(user);
+            setUser(userData);
         } catch (error) {
-            console.error('Error during login:', error);
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    const logout = (): void => {
+    const logout = () => {
         sessionStorage.removeItem('auth_token');
-        sessionStorage.removeItem('auth_user');
-        setToken(null);
+        sessionStorage.removeItem('user_data');
         setUser(null);
     };
 
-
-    const value: AuthContextType = useMemo(
+    const value = useMemo<AuthContextType>(
         () => ({
             user,
-            token,
+            isLoading,
             login,
             logout,
-            isAuthenticated: !!token && !!user,
-            isLoading,
+            isAuthenticated: !!user,
         }),
-        [user, token, login, logout, isLoading] // dependencias
-    );
+    [user, isLoading, login, logout])
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
 
-export const useAuth = (): AuthContextType => {
+export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth debe ser usado dentro de un AuthProvider');
     }
     return context;
-};
+}
