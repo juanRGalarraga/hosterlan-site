@@ -8,7 +8,7 @@ export default function Page() {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    
+    console.log("No está autenticado")
   }
 
   return (

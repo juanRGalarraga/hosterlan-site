@@ -6,8 +6,7 @@ import AuthGuard from '@/components/AuthGuard';
 
 function DashboardContent() {
   const { user, logout } = useAuth();
-  console.log(user);
-  
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">

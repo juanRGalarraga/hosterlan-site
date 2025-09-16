@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import { useAuth } from '@/app/providers/AuthProvider';
-import Login from './Login';
+import LoginPage from '@/app/login/page';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -30,7 +30,7 @@ export default function AuthGuard({
   }
 
   if (!isAuthenticated) {
-    return fallback ? <>{fallback}</> : <Login />;
+    return fallback ? <>{fallback}</> : <LoginPage />;
   }
 
   return <>{children}</>;

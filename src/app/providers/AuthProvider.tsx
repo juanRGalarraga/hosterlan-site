@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { User, LoginCredentials, AuthContextType } from '@/types/auth';
 import { LOGIN_QUERY } from '@/queries/login';
+import SessionStorage, { TTL } from '@/lib/SessionStorage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -15,17 +16,20 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const token = sessionStorage.getItem('auth_token');
-        const userData = sessionStorage.getItem('user_data');
 
+        const token = SessionStorage.getItem('auth_token');
+        const userData = SessionStorage.getItem('user_data');
+        console.log("TOKEN", token);
+        console.log("USERDATA", userData);
+        
+        // TODO - Validar....
         if (token && userData) {
             try {
-                const parsedUser = JSON.parse(userData);
-                setUser(parsedUser);
+                setUser(userData);
             } catch (error) {
                 console.error(error);
-                sessionStorage.removeItem('auth_token');
-                sessionStorage.removeItem('user_data');
+                SessionStorage.removeItem('auth_token');
+                SessionStorage.removeItem('user_data');
             }
         }
 
@@ -55,12 +59,22 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
                 throw new Error(data.errors[0].message);
             }
 
-            const { token, user: userData } = data.data.login;
+            const { accessToken: token, user: userData } = data?.data.login;
+            
+            SessionStorage.setItem({
+                key: 'auth_token',
+                value: token,
+                ttlInMinutes: TTL
+            });
 
-            sessionStorage.setItem('auth_token', token);
-            sessionStorage.setItem('user_data', JSON.stringify(userData));
+            SessionStorage.setItem({
+                key: 'user_data',
+                value: userData,
+                ttlInMinutes: TTL
+            });
 
             setUser(userData);
+
         } catch (error) {
             throw error;
         } finally {
@@ -69,8 +83,8 @@ export function AuthProvider({ children }: Readonly<AuthProviderProps>) {
     };
 
     const logout = () => {
-        sessionStorage.removeItem('auth_token');
-        sessionStorage.removeItem('user_data');
+        SessionStorage.removeItem('auth_token');
+        SessionStorage.removeItem('user_data');
         setUser(null);
     };
 
